@@ -5,10 +5,19 @@ import (
 	"testing"
 )
 
+type MyCustomError struct {
+	message string
+}
+
+func (e *MyCustomError) Error() string {
+	return e.message
+}
+
 var (
-	errFoo = errors.New("FOO")
-	errBar = errors.New("BAR")
-	errBaz = errors.New("BAZ")
+	errFoo    = errors.New("FOO")
+	errBar    = errors.New("BAR")
+	errBaz    = errors.New("BAZ")
+	errCustom = &MyCustomError{message: "CustomError"}
 )
 
 func TestDefaultClassifier(t *testing.T) {
@@ -30,7 +39,7 @@ func TestDefaultClassifier(t *testing.T) {
 }
 
 func TestWhitelistClassifier(t *testing.T) {
-	c := WhitelistClassifier{errFoo, errBar}
+	c := NewWhiltelistClassifier([]error{errFoo, errBar, errCustom})
 
 	if c.Classify(nil) != Succeed {
 		t.Error("whitelist misclassified nil")
@@ -42,13 +51,18 @@ func TestWhitelistClassifier(t *testing.T) {
 	if c.Classify(errBar) != Retry {
 		t.Error("whitelist misclassified bar")
 	}
+
+	if c.Classify(&MyCustomError{}) != Fail {
+		t.Error("blacklist misclassified baz")
+	}
+
 	if c.Classify(errBaz) != Fail {
 		t.Error("whitelist misclassified baz")
 	}
 }
 
 func TestBlacklistClassifier(t *testing.T) {
-	c := BlacklistClassifier{errBar}
+	c := NewBlacklistClassifier([]error{errBar})
 
 	if c.Classify(nil) != Succeed {
 		t.Error("blacklist misclassified nil")
@@ -61,6 +75,9 @@ func TestBlacklistClassifier(t *testing.T) {
 		t.Error("blacklist misclassified bar")
 	}
 	if c.Classify(errBaz) != Retry {
+		t.Error("blacklist misclassified baz")
+	}
+	if c.Classify(errCustom) != Retry {
 		t.Error("blacklist misclassified baz")
 	}
 }

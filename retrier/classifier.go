@@ -40,16 +40,16 @@ func (c DefaultClassifier) Classify(err error) Action {
 // returns Succeed; if the error is in the whitelist, it returns Retry; otherwise, it returns Fail.
 type whitelistClassifier struct {
 	sync.Mutex
-	errors []interface{}
+	errors []error
 }
 
-func NewWhiltelistClassifier(errs []interface{}) Classifier {
+func NewWhiltelistClassifier(errs []error) Classifier {
 	return &whitelistClassifier{
 		errors: errs,
 	}
 }
 
-func (list *whitelistClassifier) Append(err interface{}) {
+func (list *whitelistClassifier) Append(err error) {
 	list.Lock()
 	defer list.Unlock()
 	list.errors = append(list.errors, err)
@@ -61,8 +61,11 @@ func (list *whitelistClassifier) Classify(err error) Action {
 		return Succeed
 	}
 
+	if list.errors == nil {
+		return Fail
+	}
 	for _, pass := range list.errors {
-		if errors.As(err, pass) {
+		if errors.Is(err, pass) {
 			return Retry
 		}
 	}
@@ -74,16 +77,16 @@ func (list *whitelistClassifier) Classify(err error) Action {
 // returns Succeed; if the error is in the blacklist, it returns Fail; otherwise, it returns Retry.
 type blacklistClassifier struct {
 	sync.Mutex
-	errors []interface{}
+	errors []error
 }
 
-func NewBlacklistClassifier(errs []interface{}) Classifier {
+func NewBlacklistClassifier(errs []error) Classifier {
 	return &blacklistClassifier{
 		errors: errs,
 	}
 }
 
-func (list *blacklistClassifier) Append(err interface{}) {
+func (list *blacklistClassifier) Append(err error) {
 	list.Lock()
 	defer list.Unlock()
 	list.errors = append(list.errors, err)
@@ -95,8 +98,12 @@ func (list *blacklistClassifier) Classify(err error) Action {
 		return Succeed
 	}
 
+	if list.errors == nil {
+		return Retry
+	}
+
 	for _, pass := range list.errors {
-		if errors.As(err, pass) {
+		if errors.Is(err, pass) {
 			return Fail
 		}
 	}

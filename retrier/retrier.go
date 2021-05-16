@@ -30,6 +30,10 @@ type (
 // waited before each subsequent retry. The classifier is used to determine which errors should be retried and
 // which should cause the retrier to fail fast. The DefaultClassifier is used if nil is passed.
 func New(backoff []time.Duration, class Classifier) Retrier {
+	return new(backoff, class)
+}
+
+func new(backoff []time.Duration, class Classifier) *retrier {
 	if class == nil {
 		class = DefaultClassifier{}
 	}

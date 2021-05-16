@@ -34,7 +34,7 @@ func genWorkWithCtx() func(ctx context.Context) error {
 }
 
 func TestRetrier(t *testing.T) {
-	r := New([]time.Duration{0, 10 * time.Millisecond}, WhitelistClassifier{errFoo})
+	r := New([]time.Duration{0, 10 * time.Millisecond}, NewWhiltelistClassifier([]error{errFoo}))
 
 	err := r.Run(genWork([]error{errFoo, errFoo}))
 	if err != nil {
@@ -64,7 +64,7 @@ func TestRetrier(t *testing.T) {
 func TestRetrierCtx(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	r := New([]time.Duration{0, 10 * time.Millisecond}, WhitelistClassifier{})
+	r := New([]time.Duration{0, 10 * time.Millisecond}, NewWhiltelistClassifier(nil))
 
 	err := r.RunCtx(ctx, genWorkWithCtx())
 	if err != nil {
@@ -114,7 +114,7 @@ func TestRetrierNone(t *testing.T) {
 }
 
 func TestRetrierJitter(t *testing.T) {
-	r := New([]time.Duration{0, 10 * time.Millisecond, 4 * time.Hour}, nil)
+	r := new([]time.Duration{0, 10 * time.Millisecond, 4 * time.Hour}, nil)
 
 	if r.calcSleep(0) != 0 {
 		t.Error("Incorrect sleep calculated")
